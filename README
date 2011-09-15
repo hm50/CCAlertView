@@ -1,0 +1,11 @@
+CCAlertView README file.
+
+I was in need of an alertview that I could modify easily, but wanted it to closely mimic the UIAlertView properties. The CCAlertView has a built in "Bounce-In" like UIAlertView. It also has modifiable labels and button text. A version is underway that will allow the addition of a UITextField, similar to Apple's Username and Password prompt.
+
+I will add more to this file as time allows.
+
+Thank You and Enjoy!
+
+
+CCAlertView is under MIT license.
+
