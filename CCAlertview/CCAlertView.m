@@ -1,115 +1,140 @@
 //
 //  CCAlertView.m
-//  
 //
-//  Created by Harvey Mills on 2/16/11.
-//  Copyright 2011 __2BPM Software__. All rights reserved.
 //
+//  Created by Harvey Mills on 6/30/13.
+//  Copyright 2013 Muzago. All rights reserved.
+//  www.muzago.com
+
+/*
+ Copyright (c) 2013 Muzago
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ */
 
 #import "CCAlertView.h"
 
-
-
-
 @implementation CCAlertView
 
-@synthesize Message, SubMessage, Button1, Button2, procede;
+@synthesize _delegate;
 
--(id) init  {
+
+
+-(id) initWithTitle:(NSString*)title message:(NSString *)message delegate:(id)delegate cancelButtonTitle:(NSString *)cancelButtonTitle otherButtonTitle:(NSString *)otherButtonTitle  {
 	
-    if((self == [super init]))
+    if(self == [super init])
 		
     {
-		
-        self.isTouchEnabled = YES;
+        self._delegate = delegate;
+        
+        BOOL isIPAD = UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad;
+
         CGSize size = CGSizeMake(287, 139);
-        NSString *altImg = @"redalertview.png";
-        NSString *rlb = @"redlightButton.png";
-        NSString *rdb = @"reddarkButton.png";
-        int fnt1 = 18;
-        int fnt2 = 14;
-        int num1 = 20;
-        int num2 = 30;
-        int num3 = 50;
-        int num4 = 10;
-		if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad){
-            altImg = @"redalertview-hd.png";
-            rlb = @"redlightButton-hd.png";
-            rdb = @"reddarkButton-hd.png";
-            fnt1 = 36;
-            fnt2 = 28;
-            num1 = 40;
-            num2 = 60;
-            num3 = 100;
-            num4 = 20;
-            size = CGSizeMake(574, 278);
-        }
-		CCSprite *alertViewSprite = [CCSprite spriteWithFile:altImg];
+        NSString *fontStyle = @"HelveticaNeue-Bold";
+        NSString *altImg = @"redalertview.png"; if (isIPAD) altImg = @"redalertview-hd.png";
+        NSString *rlb = @"redlightButton.png"; if (isIPAD) rlb = @"redlightButton-hd.png";
+        NSString *rdb = @"reddarkButton.png"; if (isIPAD) rdb = @"reddarkButton-hd.png";
+        float fnt1 = 18, fnt2 = 14;
+        float padding = 10; // distance between buttons
+        float menuPos = 30; // buttons vertical alignment offset
+        float titleHtDif = 20; //height of title label
+        float msgHtDif = 50; //height of messgae label
+        
+		alertViewSprite = [CCSprite spriteWithFile:altImg];
 		[self addChild:alertViewSprite z:-1];
 		// 287X139
 		
 		self.anchorPoint = ccp(0,0);
+        
+        if (title == nil || [title isEqualToString:@""]){
+            title = @"Alert Title";
+        }
+        if (message == nil || [message isEqualToString:@""]){
+            message = @"Message Here";
+        }
+        if (otherButtonTitle == nil || [otherButtonTitle isEqualToString:@""]){
+            otherButtonTitle = @"";
+        }
+        if (cancelButtonTitle == nil || [cancelButtonTitle isEqualToString:@""]){
+            cancelButtonTitle = @"OK";
+        }
+        
+        CCMenuItemImage *OK = [CCMenuItemImage itemWithNormalImage:rdb selectedImage:rlb target:self selector:@selector(otherButtonPressed:)];
+		CCMenuItemImage *Cancel = [CCMenuItemImage itemWithNormalImage:rdb selectedImage:rlb target:self selector:@selector(cancelButtonPressed:)];
+        CCMenu *alertMenu;
+        if (otherButtonTitle == nil || [otherButtonTitle isEqualToString:@""]){
+            alertMenu = [CCMenu menuWithItems:Cancel, nil];
+        }else{
+            alertMenu = [CCMenu menuWithItems:OK, Cancel, nil];
+            [alertMenu alignItemsHorizontallyWithPadding:padding];
+        }
 		
-        procede = 0;
-		Message = @"Device is in Silent Mode!";
-		SubMessage = @"You will be unable to hear words.";
-		Button1 = @"OK";
-		Button2 = @"Cancel";
-		
-		CCMenuItemImage *OK = [CCMenuItemImage itemFromNormalImage:rlb selectedImage:rdb target:self selector:@selector(resume:)];
-		CCMenuItemImage *Cancel = [CCMenuItemImage itemFromNormalImage:rdb selectedImage:rlb target:self selector:@selector(cancel:)];
-		CCMenu *alertMenu = [CCMenu menuWithItems:Cancel, OK, nil];
-		//alertMenu.anchorPoint = ccp(0,0);
-		[alertMenu alignItemsHorizontallyWithPadding:num4];
-		alertMenu.position = ccp(size.width/2, size.height/2-num2);
+		alertMenu.position = ccp(size.width * .5, (size.height * .5) - menuPos);
 		[alertViewSprite addChild:alertMenu];
 		
-		CCLabelTTF *MessageLabel = [CCLabelTTF labelWithString:Message fontName:@"HelveticaNeue-Bold" fontSize:fnt1];
-		MessageLabel.position = ccp(alertViewSprite.contentSize.width/2, alertViewSprite.contentSize.height-num1);
+		CCLabelTTF *TitleLabel = [CCLabelTTF labelWithString:title fontName:fontStyle fontSize:fnt1];
+		TitleLabel.position = ccp(alertViewSprite.contentSize.width * .5, alertViewSprite.contentSize.height-titleHtDif);
+		[alertViewSprite addChild:TitleLabel];
+    
+        CCLabelTTF *MessageLabel = [CCLabelTTF labelWithString:message fontName:fontStyle fontSize:fnt2 dimensions:CGSizeMake(alertViewSprite.contentSize.width - 10, fnt2*3) hAlignment:kCCTextAlignmentCenter vAlignment:kCCVerticalTextAlignmentCenter lineBreakMode:kCCLineBreakModeWordWrap];
+		MessageLabel.position = ccp(alertViewSprite.contentSize.width * .5, alertViewSprite.contentSize.height-msgHtDif);
 		[alertViewSprite addChild:MessageLabel];
 		
-		CCLabelTTF *SubMessageLabel = [CCLabelTTF labelWithString:SubMessage fontName:@"HelveticaNeue-Bold" fontSize:fnt2];
-		SubMessageLabel.position = ccp(alertViewSprite.contentSize.width/2, alertViewSprite.contentSize.height-num3);
-		[alertViewSprite addChild:SubMessageLabel];
-		
-		CCLabelTTF *OKlabel = [CCLabelTTF labelWithString:Button1 fontName:@"HelveticaNeue-Bold" fontSize:fnt1];
-		OKlabel.position = ccp(OK.contentSize.width/2, OK.contentSize.height/2);
+		CCLabelTTF *OKlabel = [CCLabelTTF labelWithString:otherButtonTitle fontName:fontStyle fontSize:fnt1];
+		OKlabel.position = ccp(OK.contentSize.width * .5, OK.contentSize.height * .5);
 		[OK addChild:OKlabel];
 		
-		CCLabelTTF *cancellabel = [CCLabelTTF labelWithString:Button2 fontName:@"HelveticaNeue-Bold" fontSize:fnt1];
-		cancellabel.position = ccp(Cancel.contentSize.width/2, Cancel.contentSize.height/2);
+		CCLabelTTF *cancellabel = [CCLabelTTF labelWithString:cancelButtonTitle fontName:fontStyle fontSize:fnt1];
+		cancellabel.position = ccp(Cancel.contentSize.width * .5, Cancel.contentSize.height * .5);
 		[Cancel addChild:cancellabel];
 		
 		alertViewSprite.scale = .6;
 		alertViewSprite.opacity = 150;
-		
-		id fadeIn = [CCFadeIn actionWithDuration:0.1];
-		id scale1 = [CCSpawn actions:fadeIn, [CCScaleTo actionWithDuration:0.15 scale:1.1], nil];
-		id scale2 = [CCScaleTo actionWithDuration:0.1 scale:0.9];
-		id scale3 = [CCScaleTo actionWithDuration:0.05 scale:1.0];
-		id pulse = [CCSequence actions:scale1, scale2, scale3, nil];
-		
-		[alertViewSprite runAction:pulse];
-		
-		[[SimpleAudioEngine sharedEngine] playEffect:@"alert.caf"];
-		
-    }
+	}
 	
     return self;
 }
 
--(void) resume:(id) sender
-{
-	//[[CCDirector sharedDirector] replaceScene: [CCTransitionFade transitionWithDuration:1.0 scene: [Game scene] withColor:ccBLACK]];
-    procede = 1;
-    CCLOG(@"procede = %d",procede);
+-(void)showAV {
+    CCScene *scene = [[CCDirector sharedDirector] runningScene];
+    CGSize size = [[CCDirector sharedDirector] winSize];
+    self.position = ccp(size.width * .5, size.height * .5);
+    [scene addChild:self];
+    
+    id fadeIn = [CCFadeIn actionWithDuration:0.1];
+    id scale1 = [CCSpawn actions:fadeIn, [CCScaleTo actionWithDuration:0.15 scale:1.1], nil];
+    id scale2 = [CCScaleTo actionWithDuration:0.1 scale:0.9];
+    id scale3 = [CCScaleTo actionWithDuration:0.05 scale:1.0];
+    id pulse = [CCSequence actions:scale1, scale2, scale3, nil];
+    
+    [alertViewSprite runAction:pulse];
+    
+    [[SimpleAudioEngine sharedEngine] playEffect:@"alert.caf"];
+}
+
+-(void) otherButtonPressed:(id) sender {
+    [self._delegate CCAlertView:self indexSelected:1];
     CCScene *scene = [[CCDirector sharedDirector] runningScene];
     [scene removeChild:self cleanup:YES];
 }
--(void) cancel:(id) sender
-{
-	procede = 2;
-    CCLOG(@"procede = %d",procede);
+-(void) cancelButtonPressed:(id) sender {
+	[self._delegate CCAlertView:self indexSelected:0];
     CCScene *scene = [[CCDirector sharedDirector] runningScene];
     [scene removeChild:self cleanup:YES];
 }
